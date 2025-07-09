@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/zaouldyeck/simple-web-service/pkg/config"
+	"github.com/zaouldyeck/simple-web-service/pkg/models"
 )
 
 var app *config.AppConfig
@@ -17,10 +18,19 @@ func NewTemplates(a *config.AppConfig) {
 	app = a
 }
 
+func AddDefaultData(td *models.TemplateData) *models.TemplateData {
+	return td
+}
+
 // RenderTemplate renders templates using html/template.
-func RenderTemplate(w http.ResponseWriter, tmpl string) {
-	// Get template cache from app config.
-	tc := app.TemplateCache
+func RenderTemplate(w http.ResponseWriter, tmpl string, td *models.TemplateData) {
+	var tc map[string]*template.Template
+	if app.UseCache {
+		// Get template cache from app config.
+		tc = app.TemplateCache
+	} else {
+		tc, _ = CreateTemplateCache()
+	}
 
 	// Get requested template from cache.
 	t, ok := tc[tmpl]
@@ -30,7 +40,9 @@ func RenderTemplate(w http.ResponseWriter, tmpl string) {
 
 	buf := new(bytes.Buffer)
 
-	err := t.Execute(buf, nil)
+	td = AddDefaultData(td)
+
+	err := t.Execute(buf, td)
 	if err != nil {
 		log.Println(err)
 	}
